@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Cookie Parameter Parsing" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-04-16T07:24:51" hostname="DESKTOP-LDBFH73" time="0.007">
+  <properties/>
+  <testcase name="Cookie with = in value" classname="com.example.burp.sqli.ParserLogicTest$CookieParsing" time="0.002"/>
+  <testcase name="Empty cookie header returns empty" classname="com.example.burp.sqli.ParserLogicTest$CookieParsing" time="0.001"/>
+  <testcase name="Cookie value with special characters" classname="com.example.burp.sqli.ParserLogicTest$CookieParsing" time="0.001"/>
+  <testcase name="Single cookie" classname="com.example.burp.sqli.ParserLogicTest$CookieParsing" time="0.0"/>
+  <testcase name="Cookie with extra spaces" classname="com.example.burp.sqli.ParserLogicTest$CookieParsing" time="0.001"/>
+  <testcase name="Standard cookie header" classname="com.example.burp.sqli.ParserLogicTest$CookieParsing" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

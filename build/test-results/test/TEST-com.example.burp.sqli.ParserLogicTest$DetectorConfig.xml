@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Detector Configuration" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-04-16T07:24:51" hostname="DESKTOP-LDBFH73" time="0.018">
+  <properties/>
+  <testcase name="TimeBlindDetector enforces minimum timeout of 10s" classname="com.example.burp.sqli.ParserLogicTest$DetectorConfig" time="0.011"/>
+  <testcase name="Detector interface default methods don't crash" classname="com.example.burp.sqli.ParserLogicTest$DetectorConfig" time="0.004"/>
+  <testcase name="StringBlindDetector accepts timeout and delay" classname="com.example.burp.sqli.ParserLogicTest$DetectorConfig" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

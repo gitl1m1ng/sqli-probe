@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="JSON Body Parsing" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-04-16T07:24:51" hostname="DESKTOP-LDBFH73" time="0.021">
+  <properties/>
+  <testcase name="Simple flat JSON" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.002"/>
+  <testcase name="Unicode escape" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="Three-level nesting with sibling" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.004"/>
+  <testcase name="Empty array value" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Malformed JSON does not crash" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Null input does not crash" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="JSON with whitespace" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="Mixed types: number, boolean, null" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Empty object returns empty list" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="Empty string does not crash" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="Mixed nested with array and primitive" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="Escaped quotes in value preserved" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Decimal number" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Nested JSON with dot-path keys" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.001"/>
+  <testcase name="Negative number" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Array values are skipped, sibling extracted" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Deeply nested object" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <testcase name="Newlines and tabs in JSON" classname="com.example.burp.sqli.ParserLogicTest$JsonParsing" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

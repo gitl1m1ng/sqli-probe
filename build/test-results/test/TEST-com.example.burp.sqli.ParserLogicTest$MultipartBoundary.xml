@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Multipart Boundary Extraction" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-04-16T07:24:51" hostname="DESKTOP-LDBFH73" time="0.007">
+  <properties/>
+  <testcase name="No boundary returns null" classname="com.example.burp.sqli.ParserLogicTest$MultipartBoundary" time="0.003"/>
+  <testcase name="Boundary with extra attributes" classname="com.example.burp.sqli.ParserLogicTest$MultipartBoundary" time="0.001"/>
+  <testcase name="Case insensitive boundary" classname="com.example.burp.sqli.ParserLogicTest$MultipartBoundary" time="0.001"/>
+  <testcase name="Standard boundary" classname="com.example.burp.sqli.ParserLogicTest$MultipartBoundary" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
