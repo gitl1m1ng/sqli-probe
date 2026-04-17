@@ -12,7 +12,7 @@ import java.util.List;
  *
  * Payload（全部尝试，综合判定）：
  *   - poc1: ' XOR SLEEP(5) XOR '  （字符型注入环境）
- *   - poc2: 0 XOR SLEEP(5)       （数字型注入环境，仅对参数值为数字时使用）
+ *   - poc2: 1*SLEEP(5)            （数字型注入环境，仅对参数值为数字时使用）
  *   - poc3: SLEEP(5)              （通用，不依赖闭合）
  *
  * 判定：所有 Payload 都尝试后，任一触发延迟或超时 → 可疑
@@ -25,11 +25,11 @@ public class TimeBlindDetector implements Detector {
     protected int delayMs = 0;
 
     // 数字型参数：尝试所有三个 Payload
-    // 非数字型参数：跳过 poc2 (0 XOR SLEEP(5))
+    // 非数字型参数：跳过 poc2 (1*SLEEP(5))
     // 注：POC_LABELS 需要与 SLEEP_PAYLOADS 长度一致
     private static final String[] SLEEP_PAYLOADS_ALL = {
             "' XOR SLEEP(5) XOR '",  // poc1
-            "0 XOR SLEEP(5)",         // poc2
+            "1*SLEEP(5)",             // poc2
             "SLEEP(5)"                // poc3
     };
     private static final String[] SLEEP_PAYLOADS_NON_NUMERIC = {
@@ -67,14 +67,14 @@ public class TimeBlindDetector implements Detector {
 
         // 2) 根据参数类型选择 Payload
         // 数字型参数：尝试所有三个 Payload
-        // 非数字型参数：跳过 poc2 (0 XOR SLEEP(5))
+        // 非数字型参数：跳过 poc2 (1*SLEEP(5))
         boolean isNumeric = NumericDetector.isNumericParam(paramValue);
         String[] payloads = isNumeric ? SLEEP_PAYLOADS_ALL : SLEEP_PAYLOADS_NON_NUMERIC;
         String[] pocLabels = isNumeric ? POC_LABELS_ALL : POC_LABELS_NON_NUMERIC;
 
         if (!isNumeric) {
             api.logging().logToOutput(String.format(
-                    "[SQLi Probe] TimeBlind: param value is non-numeric, skipping numeric payload (0 XOR SLEEP(5))"));
+                    "[SQLi Probe] TimeBlind: param value is non-numeric, skipping numeric payload (1*SLEEP(5))"));
         }
 
         boolean foundInjection = false;
@@ -111,13 +111,20 @@ public class TimeBlindDetector implements Detector {
                 }
             } catch (Exception e) {
                 // v6.0 修复：捕获异常，避免单次请求失败导致整个检测中断
+                // v1.0.1 修复：保留请求对象，便于用户查看
                 api.logging().logToOutput(String.format(
                         "[SQLi Probe] TimeBlind ERROR in %s: %s - continuing with next payload",
                         pocLabel, e.getClass().getSimpleName(), e.getMessage()));
-                // 添加一个错误 entry 以便记录
+                // 添加一个错误 entry 以便记录（保留请求对象）
+                HttpRequest reqForError = null;
+                try {
+                    reqForError = StringBlindDetector.buildRequestWithParam(baseReq, paramName, payload, paramType);
+                } catch (Exception ignored) {}
                 result.addEntry(new ProbeResult.ProbeEntry(
-                        pocLabel + " (ERROR)", payload, null, 0,
-                        List.of("[ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage())));
+                        pocLabel + " (ERROR)", payload,
+                        reqForError != null ? burp.api.montoya.http.message.HttpRequestResponse.httpRequestResponse(reqForError, null) : null,
+                        0,
+                        java.util.List.of("[ERROR] " + e.getClass().getSimpleName() + ": " + e.getMessage())));
             }
         }
 

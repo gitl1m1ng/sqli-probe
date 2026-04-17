@@ -424,17 +424,22 @@ public class ProbeTab extends JPanel {
 
     /**
      * 显示 Entry 详情（v5.9）
+     * 修复(v1.0.1)：超时/错误 Entry 的 requestResponse.response() 为 null 时，
+     * 请求区仍正常显示（StringBlindDetector.sendAndRecord 已保留 request 对象），
+     * 响应区显示空（MessageEditorPanel.setRequestResponse 已处理 null response 场景）。
      */
     private void displayEntryDetail(ProbeResult.ProbeEntry entry, ProbeResult result) {
         if (entry.getRequestResponse() == null || entry.getRequestResponse().request() == null) {
-            detailPanel.clear();
+            // 最终 fallback：显示任务原始请求（极少数情况，如旧版本数据）
+            String title = currentTaskRow.getMethod() + " " + currentTaskRow.getShortUrl();
+            detailPanel.setRequestOnly(currentTaskRow.getRequest(), title + " [请求数据不可用]");
             return;
         }
 
         // 构建标题
         String title = currentTaskRow.getMethod() + " " + currentTaskRow.getShortUrl();
         title += " | " + result.getParamName() + " (" + result.getDetectorType().getLabel() + ")";
-        if (entry.getLabel().startsWith("Baseline")) {
+        if (entry.getLabel() != null && entry.getLabel().startsWith("Baseline")) {
             title += " | [Baseline]";
         } else {
             title += " | " + entry.getLabel();

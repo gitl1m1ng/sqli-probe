@@ -269,11 +269,13 @@ public class StringBlindDetector implements Detector {
 
             if (!taskCompleted) {
                 // 超时：取消任务并返回 TIMEOUT entry
+                // 修复(v1.0.1)：保留 request 对象，便于用户点击后查看/发送到 Repeater
                 futureTask.cancel(true); // 尝试中断线程
                 // 强制等待一小段时间确保线程确实被中断
                 try { Thread.sleep(50); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
                 api.logging().logToOutput("[SQLi Probe] Request timed out after " + elapsed + "ms: " + label + " (canceled)");
-                return new ProbeResult.ProbeEntry(label + " (TIMEOUT)", payload, null,
+                return new ProbeResult.ProbeEntry(label + " (TIMEOUT)", payload,
+                        HttpRequestResponse.httpRequestResponse(request, null),
                         elapsed, List.of("[TIMEOUT] Request exceeded " + timeoutMs + "ms"));
             }
 
@@ -283,23 +285,27 @@ public class StringBlindDetector implements Detector {
             } catch (java.util.concurrent.CancellationException e) {
                 // 任务被取消（不应该发生，因为我们已经检查了 isDone()）
                 api.logging().logToOutput("[SQLi Probe] Request canceled: " + label);
-                return new ProbeResult.ProbeEntry(label + " (CANCELED)", payload, null,
+                return new ProbeResult.ProbeEntry(label + " (CANCELED)", payload,
+                        HttpRequestResponse.httpRequestResponse(request, null),
                         elapsed, List.of("[CANCELED] Request was canceled"));
             } catch (java.util.concurrent.ExecutionException e) {
                 // 请求执行失败
                 api.logging().logToOutput("[SQLi Probe] Request failed (ExecutionException): " + label + " - " + e.getCause());
-                return new ProbeResult.ProbeEntry(label + " (FAILED)", payload, null,
+                return new ProbeResult.ProbeEntry(label + " (FAILED)", payload,
+                        HttpRequestResponse.httpRequestResponse(request, null),
                         elapsed, List.of("[FAILED] " + (e.getCause() != null ? e.getCause().getMessage() : "Unknown error")));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 api.logging().logToOutput("[SQLi Probe] Request interrupted: " + label);
-                return new ProbeResult.ProbeEntry(label + " (INTERRUPTED)", payload, null,
+                return new ProbeResult.ProbeEntry(label + " (INTERRUPTED)", payload,
+                        HttpRequestResponse.httpRequestResponse(request, null),
                         elapsed, List.of("[INTERRUPTED] Request was interrupted"));
             }
 
         } catch (Exception e) {
             api.logging().logToOutput("[SQLi Probe] Send failed: " + label + " - " + e.getMessage());
-            return new ProbeResult.ProbeEntry(label + " (FAILED)", payload, null,
+            return new ProbeResult.ProbeEntry(label + " (FAILED)", payload,
+                    HttpRequestResponse.httpRequestResponse(request, null),
                     System.currentTimeMillis() - start, List.of("[FAILED] " + e.getMessage()));
         }
         long elapsed = System.currentTimeMillis() - start;
@@ -307,7 +313,8 @@ public class StringBlindDetector implements Detector {
         // 检查 resp 和 response 是否为 null（sendThread 被中断后可能返回一个不完整的 response）
         if (resp == null) {
             api.logging().logToOutput("[SQLi Probe] Request completed but response is null: " + label);
-            return new ProbeResult.ProbeEntry(label + " (NULL_RESPONSE)", payload, null,
+            return new ProbeResult.ProbeEntry(label + " (NULL_RESPONSE)", payload,
+                    HttpRequestResponse.httpRequestResponse(request, null),
                     elapsed, List.of("[NULL_RESPONSE] Response object is null after request completed"));
         }
 

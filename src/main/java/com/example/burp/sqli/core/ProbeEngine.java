@@ -158,55 +158,77 @@ public class ProbeEngine {
     /**
      * 手动去重：移除重复的任务
      * v6.0: 新增手动去重功能
-     * 去重规则：URL 路径相同 + 参数名相同（不管顺序、不管参数值）= 重复项
+     * v1.0.1: 修复两处局限：
+     *   1. 加入 HTTP Method 前缀，区分 GET /api 与 POST /api
+     *   2. 对 JSON body 单独解析字段名（request.parameters() 不返回 JSON 字段）
+     *
+     * 去重规则：Method + URL 路径 + 参数名集合（不管顺序和参数值）= 重复项
      * 示例：
-     *   /api?id=1 和 /api?id=2 → 重复（都有 id 参数）
-     *   /api?id=1&page=2 和 /api?page=2&id=1 → 重复（参数名都是 id,page）
+     *   GET  /api?id=1 和 GET  /api?id=2  → 重复（Method+路径+参数名 完全一致）
+     *   POST /api?id=1 和 GET  /api?id=1  → 不重复（Method 不同）
+     *   POST /api body:{"name":"a"}  和  POST /api body:{"name":"b"} → 重复（JSON 字段名相同）
+     *   POST /api body:{"name":"a"}  和  POST /api body:{"age":1}   → 不重复（字段名不同）
      */
     public int deduplicate() {
         int removed = 0;
         synchronized (taskRows) {
             Set<String> seenKeys = new java.util.HashSet<>();
             List<TaskRow> toRemove = new java.util.ArrayList<>();
-            
+
             for (TaskRow row : taskRows) {
                 try {
                     HttpRequest request = row.getRequest();
-                    // 构建去重 key：URL 路径 + 参数名列表（按字母排序，忽略值和顺序）
+
+                    // 1. HTTP Method（区分 GET/POST/PUT/DELETE 等）
+                    String method = request.method() != null ? request.method().toUpperCase() : "GET";
+
+                    // 2. URL 路径（截掉 ? 之后的部分）
                     String baseUrl = getBaseUrl(request.url());
+
+                    // 3. 收集参数名
                     List<String> paramNames = new java.util.ArrayList<>();
-                    
-                    // 提取 Query 参数名
+
+                    // 3a. Query 参数名（来自 URL）
                     for (HttpParameter p : request.parameters()) {
                         if (p.type() == HttpParameterType.URL) {
                             paramNames.add(p.name());
                         }
                     }
-                    
-                    // 提取 Body 参数名
-                    for (HttpParameter p : request.parameters()) {
-                        if (p.type() == HttpParameterType.BODY) {
-                            paramNames.add(p.name());
+
+                    // 3b. Body 参数名
+                    String contentType = request.headerValue("Content-Type");
+                    if (contentType != null && contentType.contains("application/json")) {
+                        // JSON body：request.parameters() 不含 JSON 字段，需自行解析
+                        String body = request.bodyToString();
+                        if (body != null && !body.isBlank()) {
+                            extractJsonFieldNames(body, paramNames);
+                        }
+                    } else {
+                        // form-urlencoded / multipart：直接用 Montoya API
+                        for (HttpParameter p : request.parameters()) {
+                            if (p.type() == HttpParameterType.BODY) {
+                                paramNames.add(p.name());
+                            }
                         }
                     }
-                    
-                    // 排序并组合参数名
+
+                    // 4. 排序后拼接，忽略参数顺序
                     java.util.Collections.sort(paramNames);
                     String paramKey = String.join(",", paramNames);
-                    
-                    // 完整 key
-                    String key = baseUrl + "|" + paramKey;
-                    
+
+                    // 5. 完整 key = Method + "|" + 路径 + "|" + 参数名列表
+                    String key = method + "|" + baseUrl + "|" + paramKey;
+
                     if (seenKeys.contains(key)) {
                         toRemove.add(row);
                     } else {
                         seenKeys.add(key);
                     }
                 } catch (Exception e) {
-                    // 如果解析失败，保留该行
+                    // 解析失败时保留该行，不误删
                 }
             }
-            
+
             for (TaskRow row : toRemove) {
                 taskRows.remove(row);
                 removed++;
@@ -228,6 +250,78 @@ public class ProbeEngine {
     private String getBaseUrl(String url) {
         int qmIndex = url.indexOf('?');
         return qmIndex > 0 ? url.substring(0, qmIndex) : url;
+    }
+
+    /**
+     * 从 JSON 字符串中提取顶层字段名，用于去重 Key 构建。
+     * 仅提取最外层 Object 的 key，不递归嵌套（避免过度细粒度导致漏报）。
+     * 例如：{"user":{"name":"a"},"age":1} → 提取 ["user","age"]
+     *
+     * 实现：简单字符扫描，无需引入 JSON 库，兼容 fat jar 打包限制。
+     */
+    private void extractJsonFieldNames(String json, List<String> out) {
+        // 找到最外层 { }
+        int start = json.indexOf('{');
+        if (start < 0) return;
+
+        int depth = 0;
+        boolean inString = false;
+        boolean escaped = false;
+        StringBuilder key = new StringBuilder();
+        boolean collectingKey = false;
+
+        for (int i = start; i < json.length(); i++) {
+            char c = json.charAt(i);
+
+            if (escaped) {
+                if (collectingKey) key.append(c);
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                if (collectingKey) key.append(c);
+                continue;
+            }
+
+            if (c == '"') {
+                if (!inString) {
+                    // 只在 depth==1 时（最外层 object 的直接子 key）才收集
+                    if (depth == 1) {
+                        collectingKey = true;
+                        key.setLength(0);
+                    }
+                    inString = true;
+                } else {
+                    inString = false;
+                    if (collectingKey) {
+                        // 需要确认紧接着是 ':'，才算 key
+                        // 先暂存，后面遇到 ':' 才加入 out
+                        String candidate = key.toString();
+                        // 跳过空白找 ':'
+                        int j = i + 1;
+                        while (j < json.length() && Character.isWhitespace(json.charAt(j))) j++;
+                        if (j < json.length() && json.charAt(j) == ':') {
+                            out.add(candidate);
+                        }
+                        collectingKey = false;
+                    }
+                }
+                continue;
+            }
+
+            if (inString) {
+                if (collectingKey) key.append(c);
+                continue;
+            }
+
+            if (c == '{' || c == '[') {
+                depth++;
+            } else if (c == '}' || c == ']') {
+                depth--;
+                if (depth == 0) break; // 最外层结束
+            }
+        }
     }
 
     /**

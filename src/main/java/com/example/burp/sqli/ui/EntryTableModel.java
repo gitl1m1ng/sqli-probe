@@ -64,6 +64,25 @@ public class EntryTableModel extends AbstractTableModel {
             if (entry == baseline) {
                 return "Baseline";
             }
+
+            // 超时/取消/失败/错误条目：直接根据 Label 显示，不做相似度比较
+            String label = entry.getLabel() != null ? entry.getLabel() : "";
+            if (label.contains("TIMEOUT")) {
+                return "请求超时，无响应数据";
+            }
+            if (label.contains("CANCELED")) {
+                return "请求被取消，无响应数据";
+            }
+            if (label.contains("FAILED") || label.contains("NULL_RESPONSE")) {
+                return "请求失败，无响应数据";
+            }
+            if (label.contains("INTERRUPTED")) {
+                return "请求被中断，无响应数据";
+            }
+            if (label.contains("ERROR")) {
+                return "请求出错，无响应数据";
+            }
+
             // 使用 ResponseComparator.similarity 的判断逻辑
             double sim = ResponseComparator.similarity(
                     getResponseBody(baseline),
